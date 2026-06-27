@@ -78,3 +78,20 @@ http://127.0.0.1:5000/login
 ## Purpose
 
 This project was built as a beginner Flask authentication project to understand user login, registration, role-based permissions, and admin-only page access.
+
+## Screenshots
+
+### Login Page
+![Login Page](static/screenshots/login.png)
+
+### Register Page
+![Register Page](static/screenshots/register.png)
+
+### Viewer Dashboard
+![Viewer Dashboard](static/screenshots/viewer.png)
+
+### Admin Dashboard
+![Admin Dashboard](static/screenshots/admin.png)
+
+### Admin View
+![Admin View](static/screenshots/admin-view.png)
