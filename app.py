@@ -1,6 +1,6 @@
 from flask import Flask, render_template, redirect, url_for, request, flash
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
-from models import db, User
+from models import db, User, AuditLog
 from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
@@ -18,6 +18,18 @@ login_manager.init_app(app)
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
+
+
+def log_event(username, action, status):
+    audit = AuditLog(
+        username=username,
+        action=action,
+        status=status,
+        ip_address=request.remote_addr
+    )
+
+    db.session.add(audit)
+    db.session.commit()
 
 
 @app.route('/')
@@ -49,6 +61,8 @@ def register():
         db.session.add(new_user)
         db.session.commit()
 
+        log_event(username, 'Registration', 'Success')
+
         flash('Registration successful. Please log in.')
         return redirect(url_for('login'))
 
@@ -65,9 +79,11 @@ def login():
 
         if user and check_password_hash(user.password, password):
             login_user(user)
+            log_event(username, 'Login', 'Success')
             flash('Login successful.')
             return redirect(url_for('dashboard'))
 
+        log_event(username, 'Login', 'Failed')
         flash('Invalid username or password.')
         return redirect(url_for('login'))
 
@@ -90,9 +106,23 @@ def admin():
     return render_template('admin.html')
 
 
+@app.route('/audit-logs')
+@login_required
+def audit_logs():
+    if current_user.role != 'admin':
+        flash('Access denied. Admins only.')
+        return redirect(url_for('dashboard'))
+
+    logs = AuditLog.query.order_by(AuditLog.timestamp.desc()).all()
+    return render_template('audit_logs.html', logs=logs)
+
+
 @app.route('/logout')
 @login_required
 def logout():
+    username = current_user.username
+    log_event(username, 'Logout', 'Success')
+
     logout_user()
     flash('You have been logged out.')
     return redirect(url_for('login'))
@@ -102,3 +132,4 @@ if __name__ == '__main__':
     with app.app_context():
         db.create_all()
     app.run(debug=True)
+
